@@ -26,4 +26,7 @@
 
 音量控制: 支持点击弹出音量条，实时调整音量大小。
 
+![image](https://github.com/user-attachments/assets/de433e02-1d6c-487e-acc1-7d17faa44646)
+
+
 ***开发中，待随时更新***

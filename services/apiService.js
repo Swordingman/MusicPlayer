@@ -1,13 +1,5 @@
-// services/apiService.js (原 mockAPI.js)
+const API_BASE_URL = 'https://1343447392-8u4ppfp6gh.ap-guangzhou.tencentscf.com/';
 
-// 把这里换成你刚刚部署好的 Vercel 地址！
-const API_BASE_URL = 'https://1343447392-8u4ppfp6gh.ap-guangzhou.tencentscf.com/'; 
-
-/**
- * 封装一个 uni.request 的 Promise 版本
- * @param {object} options - uni.request 的参数
- * @returns {Promise<any>}
- */
 const request = (options) => {
     return new Promise((resolve, reject) => {
         const requestUrl = API_BASE_URL + options.url;
@@ -34,11 +26,6 @@ const request = (options) => {
     });
 };
 
-/**
- * 获取歌单详情
- * @param {number} id - 歌单的 ID
- * @returns {Promise<Song[]>}
- */
 export const fetchPlaylistSongs = async (playlistId) => {
     try {
         console.log(`【API】正在从服务器获取歌单 #${playlistId} 的数据...`);
@@ -66,5 +53,22 @@ export const fetchPlaylistSongs = async (playlistId) => {
     }
 };
 
-// 你还可以根据 API 文档封装其他接口，比如搜索
-// export const searchSongs = async (keywords) => { ... }
+export const fetchLyric = async(id) => {
+	if (!id) return null;
+	try {
+		console.log(`【API】正在获取歌曲 #${id} 的歌词……`);
+		const response = await request ({
+			url: `/lyric?id=${id}`
+		});
+		
+		if (response && response.lrc && response.lrc.lyric) {
+			console.log(`【API】成功获取到歌词！`);
+			return response.lrc.lyric;
+		} else {
+			return "[00:00.00]暂无歌词";
+		}
+	} catch (error) {
+		console.error("获取歌词失败：", error);
+		return "[00:00.00]歌词加载失败";
+	}
+};

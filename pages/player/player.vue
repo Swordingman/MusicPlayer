@@ -13,6 +13,24 @@
 				<text class="song-artist">{{ playerStore.currentSong.artist }}</text>
 			</view>
 			
+			<view class="lyric-container">
+				<scroll-view class="lyric-scroll-view" :scroll-top="lyricScrollTop" scroll-y="true" scroll-with-animation="true">
+					<view class="lyric-panel" id="lyric-panel">
+						<view class="placeholder-line"></view>
+						<view
+							v-for="(line, index) in playerStore.lyric"
+							:key="index"
+							class="lyric-line"
+							:class="{ 'active': index === playerStore.currentLyricIndex }"
+							:id="'line-' + index"
+						>
+							{{ line.text }}
+						</view>
+						<view class="placeholder-line"></view>
+					</view>
+				</scroll-view>
+			</view>
+			
 			<view class="progress-bar">
 				<text class="time-text">{{ playerStore.formattedCurrentTime }}</text>
 				<slider 
@@ -29,7 +47,14 @@
 			</view>
 			
 			<view class="controls">
-				<uni-icons @tap="playerStore.changePlayMode()" :type="playModeIcon" size="25" color="#eee"></uni-icons>
+				<uni-icons 
+					class="mode-icon"
+					@tap="playerStore.changePlayMode()" 
+					custom-prefix="iconfont"
+					:type="playModeIcon" 
+					size="25" 
+					color="#eee"
+				></uni-icons>
 				<view class="main-controls">
 					<uni-icons @tap="playerStore.prevSong()" custom-prefix="iconfont" type="icon-shangyishou" size="35" color="#ffffff"></uni-icons>
 					<uni-icons v-if="!playerStore.isPlaying" @tap="playerStore.play()" custom-prefix="iconfont" type="icon-bofang" size="35" color="#ffffff"></uni-icons>
@@ -47,7 +72,7 @@
             <text class="placeholder-tip">请从首页进入播放列表</text>
         </view>
 		
-		<!-- 歌曲列表部分保持不变 -->
+
 		<view class="song-list">
 			<view class="list-header">
 				<view class="list-title">当前播放列表</view>
@@ -57,11 +82,12 @@
 				<text>{{ song.title }} - {{ song.artist }}</text>
 			</view>
 		</view>
+		
 	</view>
 </template>
 
 <script setup lang='ts'>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, getCurrentInstance } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { usePlayerStore } from '@/stores/player';
 import { fetchPlaylistSongs } from '@/services/apiService.js';
@@ -70,6 +96,9 @@ import type { Song } from '@/types/Song';
 const playerStore = usePlayerStore();
 const isSyncing = ref(false);
 const defaultCover = ref('/static/logo.png');
+const lyricScrollTop = ref(0);
+const instance = getCurrentInstance();
+const currentView = ref<'cover' | 'lyric'>('cover');
 
 onLoad(async () => {
     if (playerStore.playlist.length === 0) {
@@ -116,6 +145,32 @@ const playModeIcon = computed(() => {
 	if (playerStore.playMode === 'shuffle') return 'icon-suijibofang';
 	return 'icon-shunxubofang';
 });
+
+watch(() => playerStore.currentLyricIndex, (newIndex) => {
+	if (newIndex < 0) return;
+	
+	const query = uni.createSelectorQuery().in(instance);
+	query.select('#lyric-panel').boundingClientRect();
+	query.select('#line-' + newIndex).boundingClientRect();
+	
+	query.exec((res) => {
+		if (!res[0] || !res[1]) {
+			return;
+		}
+		
+		const panelTop = res[0].top;
+		const lineTop = res[1].top;
+		const relativeTop = lineTop - panelTop;
+		const containerHeight = 200;
+		const targetScrollTop = relativeTop - (containerHeight / 2) + 20;
+		
+		lyricScrollTop.value = targetScrollTop;
+	});
+});
+
+const toggleView = () => {
+	currentView.value = currentView.value === 'cover' ? 'lyric' : 'cover';
+};
 </script>
 
 <style lang="scss" scoped>
@@ -226,19 +281,29 @@ const playModeIcon = computed(() => {
 		font-size: 18px;
 		font-weight: bold;
 		margin-bottom: 5px;
-		text-shadow: 0 1px 2px rgba(0,0,0,0.3)
+		text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+		
+		width: 80vw;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.song-artist {
 		font-size: 16px;
 		color: #666;
 		text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+		
+		width: 60vw;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 }
 
 .controls {
 	display: flex;
-	justify-content: center;
+	justify-content: space-between;
 	align-items: center;
 	width: 80%;
 	margin: 20px;
@@ -338,5 +403,47 @@ const playModeIcon = computed(() => {
 	
 	color: #fff;
 	font-size: 20px;
+}
+
+.lyric-container {
+	position: relative;
+	z-index: 3;
+	width: 100%;
+	height: 200px;
+	margin: 20px 0;
+	flex-grow: 1;
+	overflow: hidden;
+	mask-image: linear-gradient(
+		to bottom,
+		transparent 0%,
+		black 20%,
+		black 80%,
+		transparent 100%
+	);
+}
+
+.lyric-scroll-view {
+	height: 100%;
+}
+
+.lyric-panel{}
+
+.placeholder-line{
+	height: 80px;
+}
+
+.lyric-line {
+	font-size: 16px;
+	color: rgba(38, 0, 255, 0.7);
+	padding: 10px 20px;
+	text-align: center;
+	line-height: 20px;
+	transition: all 0.3s ease;
+}
+
+.lyric-line.active {
+	color: rgba(255, 225, 75, 0.7);
+	font-weight: bold;
+	font-size: 18px;;
 }
 </style>

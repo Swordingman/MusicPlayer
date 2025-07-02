@@ -34,8 +34,8 @@
 			<uni-icons
 				@tap="showPlaylist"
 				custom-prefix="iconfont"
-				type="icon-liebiao"
-				size="30"
+				type="icon-xiang"
+				size="28"
 				color="#333"
 			></uni-icons>
 		</view>

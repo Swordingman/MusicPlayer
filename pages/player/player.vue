@@ -61,8 +61,14 @@
 					<uni-icons v-else @tap="playerStore.pause()" custom-prefix="iconfont" type="icon-zanting1" size="35" color="#ffffff"></uni-icons>
 					<uni-icons @tap="playerStore.nextSong()" custom-prefix="iconfont" type="icon-xiayishou" size="35" color="#ffffff"></uni-icons>
 				</view>
-				<!-- 这里可以放一个“分享”或“收藏”图标 -->
-				<view class="placeholder-icon" style="width: 25px;"></view>
+				<uni-icons 
+					@tap="handleDownload"
+					custom-prefix="iconfont" 
+					:type="isCurrentSongDownloaded ? 'icon-xiazaiwancheng' : 'icon-xiazai'"
+					size="25" 
+					:color="isCurrentSongDownloaded ? '#1890ff' : '#eee'"
+					class="action-icon"
+				></uni-icons>
 			</view>
 		</view>
 
@@ -171,6 +177,14 @@ watch(() => playerStore.currentLyricIndex, (newIndex) => {
 const toggleView = () => {
 	currentView.value = currentView.value === 'cover' ? 'lyric' : 'cover';
 };
+
+const handleDownload = () => {
+	playerStore.downloadCurrentSong();
+};
+
+const isCurrentSongDownloaded = computed(() => {
+	return !!playerStore.currentSong?.localPath;
+});
 </script>
 
 <style lang="scss" scoped>

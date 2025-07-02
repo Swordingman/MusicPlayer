@@ -72,3 +72,55 @@ export const fetchLyric = async(id) => {
 		return "[00:00.00]歌词加载失败";
 	}
 };
+
+export const searchSongs = async (keywords) => {
+	if (!keywords) return [];
+	try {
+		console.log(`【API】正在搜索关键词： ${keywords}`);
+		const response = await request({
+			url: `/search?keywords=${keywords}`
+		});
+		if (response && response.result && response.result.songs) {
+			console.log('【API】成功获取到搜索结果！');
+			const formattedSongs = response.result.songs.map(song => {
+				return {
+					id: song.id,
+					title: song.name,
+					artist: song.artists.map(artist => artist.name).join('/'),
+					src: `https://music.163.com/song/media/outer/url?id=${song.id}.mp3`,
+					coverImgUrl: ''
+				};
+			});
+			return formattedSongs;
+		} else { 
+			return[] 
+		};
+	} catch (error) {
+		console.error("搜索歌曲失败：", error);
+		return [];
+	}
+};
+
+export const getSongDetail = async (id) => {
+	if (!id) return null;
+	try{
+		const response = await request({
+			url: `/song/detail?ids=${id}`
+		});
+		
+		if (response && response.songs && response.songs.length > 0) {
+			const song = response.songs[0];
+			return {
+				id: song.id,
+				title: song.name,
+				artist: song.ar.map(a => a.name).join(' / '),
+				src: `https://music.163.com/song/media/outer/url?id=${song.id}.mp3`,
+				coverImgUrl: (song.al && song.al.picUrl) ? song.al.picUrl + '?param=200y200' : '/static/logo.png'
+			};
+		}
+		return null;
+	} catch (error) {
+		console.error("获取歌曲详情失败：", error);
+		return null;
+	}
+};

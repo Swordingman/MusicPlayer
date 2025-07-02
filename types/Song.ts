@@ -4,4 +4,5 @@ export interface Song {
         artist: string;
         src: string;
         coverImgUrl: string;
+		localPath?: string;
 }

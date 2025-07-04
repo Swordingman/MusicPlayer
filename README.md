@@ -1,8 +1,8 @@
 本项目是一款基于 uni-app 和 Vue 3 构建的现代化、功能丰富的跨平台音乐播放器。它不仅拥有精致的界面和流畅的交互，还具备连接真实网络音乐库、本地缓存、多种播放模式等核心功能。
 
-✨ 功能亮点
+# ✨ 功能亮点
 
-精致的 UI 设计:
+## 精致的 UI 设计:
 
 动态毛玻璃背景: 背景能根据当前播放歌曲的专辑封面自动变化，提供极佳的沉浸式体验。
 
@@ -10,7 +10,7 @@
 
 图标化控制: 使用自定义图标，界面清晰直观，符合现代 App 设计标准。
 
-强大的播放核心:
+## 强大的播放核心:
 
 基础播放控制: 支持播放、暂停、上一首、下一首。
 
@@ -26,9 +26,9 @@
 
 下载音乐：支持用户下载音乐并播放本地音乐。
 
-📷 应用截屏演示
-#搜索界面演示#
-![Screenshot_2025-07-04-16-27-35-47_a2e629f0ea915b4](https://github.com/user-attachments/assets/cd6dcf13-49cd-4213-b5f5-fc33229c3654)
-#音乐详情界面演示#
-![Screenshot_2025-07-04-16-27-48-91_a2e629f0ea915b4](https://github.com/user-attachments/assets/4b84441e-9709-4e77-b8e5-d4d1cc71ec02)
+# 📷 应用截屏演示
+## 搜索界面演示
+<img src="![Screenshot_2025-07-04-16-27-35-47_a2e629f0ea915b4](https://github.com/user-attachments/assets/cd6dcf13-49cd-4213-b5f5-fc33229c3654)" alt="Search" width="300">
 
+## 音乐详情界面演示
+<img src="![Screenshot_2025-07-04-16-27-48-91_a2e629f0ea915b4](https://github.com/user-attachments/assets/4b84441e-9709-4e77-b8e5-d4d1cc71ec02)" alt="Search" width="300">

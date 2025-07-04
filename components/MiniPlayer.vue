@@ -98,12 +98,20 @@ const showPlaylist = () => {
 }
 
 .song-title {
+	width: 200px;
 	font-size: 14px;
 	font-weight: bold;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 .song-artist {
+	width: 200px;
 	font-size: 12px;
 	color: #666;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .controls {

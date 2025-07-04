@@ -262,6 +262,23 @@ export const usePlayerStore = defineStore('player', {
 			}
 		},
 		
+		getPrivateDocPath(): string {
+		  // #ifdef APP-PLUS
+		  if (typeof plus.io.PRIVATE_DOC === 'number') {
+		    // Android 返回数字常量，需转换为实际路径
+		    return `_doc/`;
+		  }
+		  // iOS 直接返回字符串路径
+		  return plus.io.PRIVATE_DOC.endsWith('/') 
+		    ? plus.io.PRIVATE_DOC 
+		    : plus.io.PRIVATE_DOC + '/';
+		  // #endif
+		  
+		  // #ifndef APP-PLUS
+		  return 'downloads/'; // 非APP环境默认路径
+		  // #endif
+		},
+		
 		async downloadCurrentSong() {
 			if (!this.currentSong.id) {
 				uni.showToast({ title: '当前无歌曲', icon: 'none' });
@@ -271,194 +288,209 @@ export const usePlayerStore = defineStore('player', {
 				uni.showToast({ title: '歌曲已下载', icon: 'none' });
 				return;
 			}
-			
-			const hasPermission = await this.checkPermission();
-			if (!hasPermission) {
-				uni.showToast({ title: '无存储权限，无法下载', icon: 'none' });
-				return;
-			}
-			
-			const targetDir = `${plus.io.PUBLIC_DOWNLOADS}/CabbagePlayer/`;
-		
-			uni.showLoading({ title: '下载中...', mask: true });
-		
+			  
 			try {
-				const downloadResult = await uni.downloadFile({ url: this.currentSong.src, timeout: 60000 });
+				// 获取正确的下载目录路径
+				const targetDir = this.getPrivateDocPath() + 'CabbagePlayer/';
+				console.log("下载目录:", targetDir);
 				
-				if (downloadResult.statusCode === 200) {
-					const tempFilePath = downloadResult.tempFilePath;
-					
-					// 1. 确保目标目录存在
-					await this.ensureDirectoryExists(targetDir);
-					
-					// 2. 生成安全的文件名
-					const fileName = this.generateSafeFileName(
-						`${this.currentSong.artist} - ${this.currentSong.title}.mp3`
-					);
-					
-					// 3. 移动文件到目标位置
-					const savedPath = await this.moveFile(tempFilePath, targetDir, fileName);
-					
-					// 4. 更新数据库和状态
-					await updateSongLocalPath(this.currentSong.id, savedPath);
-					this.currentSong.localPath = savedPath;
-					const songInList = this.playlist.find(s => s.id === this.currentSong.id);
-					if (songInList) songInList.localPath = savedPath;
-					
-					uni.hideLoading();
-					uni.showToast({ title: '下载成功', icon: 'success' });
-					
-				} else {
-					throw new Error(`下载失败，状态码: ${downloadResult.statusCode}`);
-				}
-			} catch (error) {
-				console.error("下载失败详情:", error);
-				uni.hideLoading();
-				
-				let errorMsg = '下载失败: ';
-				if (error.message.includes('permission')) {
-				  errorMsg += '请授予存储权限';
-				} else if (error.message.includes('空间')) {
-				  errorMsg += '存储空间不足';
-				} else {
-				  errorMsg += error.message || '未知错误';
-				}
-				
-				uni.showToast({
-				  title: errorMsg,
-				  icon: 'none',
-				  duration: 5000
+				uni.showLoading({ title: '下载中...', mask: true });
+				const downloadResult = await uni.downloadFile({ 
+					url: this.currentSong.src, 
+					timeout: 60000 
 				});
+				
+			if (downloadResult.statusCode === 200) {
+					const tempFilePath = downloadResult.tempFilePath;
+				  
+				  // 1. 确保目录存在
+				await this.ensureDirectoryExists(targetDir);
+				  
+				  // 2. 生成安全文件名
+				const fileName = this.generateSafeFileName(
+					`${this.currentSong.artist} - ${this.currentSong.title}.mp3`
+				);
+				  
+				// 3. 移动文件
+				const savedPath = await this.moveFile(tempFilePath, targetDir, fileName);
+				  
+				// 4. 更新数据库和状态
+				await updateSongLocalPath(this.currentSong.id, savedPath);
+				this.currentSong.localPath = savedPath;
+				const songInList = this.playlist.find(s => s.id === this.currentSong.id);
+				if (songInList) songInList.localPath = savedPath;
+				  
+				uni.hideLoading();
+				uni.showToast({ title: '下载成功', icon: 'success' });
+			} else {
+				throw new Error(`下载失败，状态码: ${downloadResult.statusCode}`);
+			}
+			} catch (error) {
+			console.error("下载失败详情:", error);
+			uni.hideLoading();
+				
+			let errorMsg = '下载失败: ';
+			if (error.message.includes('permission')) {
+				errorMsg += '请授予存储权限';
+			} else if (error.message.includes('空间')) {
+				errorMsg += '存储空间不足';
+			} else if (error.message.includes('路径')) {
+				errorMsg += '存储路径错误';
+			} else {
+				errorMsg += error.message || '未知错误';
+			}
+				
+				uni.showToast({ title: errorMsg, icon: 'none', duration: 5000 });
 			}
 		},
-		
+
 		// 确保目录存在
 		async ensureDirectoryExists(path: string): Promise<void> {
+		  // #ifdef APP-PLUS
+		  console.log('确保目录存在:', path);
 		  return new Promise((resolve, reject) => {
-		    // #ifdef APP-PLUS
-		    plus.io.resolveLocalFileSystemURL(
-		      path,
-		      () => resolve(),
-		      async () => {
-		        try {
-		          // 创建所有不存在的父目录
-		          await new Promise((resolveParent, rejectParent) => {
-		            plus.io.requestFileSystem(plus.io.PUBLIC_DOWNLOADS, (fs) => {
-		              fs.root.getDirectory(
-		                'CabbagePlayer',
-		                { create: true, exclusive: false },
-		                (dirEntry) => resolveParent(dirEntry),
-		                (err) => rejectParent(err)
-		              );
-		            }, rejectParent);
-		          });
-		          resolve();
-		        } catch (error) {
-		          reject(error);
-		        }
-		      }
+		    plus.io.requestFileSystem(
+		      plus.io.PRIVATE_DOC,
+		      (fs) => {
+		        // 创建相对目录路径
+		        const relPath = path.replace(this.getPrivateDocPath(), '').replace(/\/$/, '');
+		        const segments = relPath.split('/').filter(p => p);
+		        
+		        const createDir = (root: any, parts: string[]) => {
+		          if (parts.length === 0) return resolve();
+		          
+		          const dir = parts.shift()!;
+		          root.getDirectory(
+		            dir,
+		            { create: true, exclusive: false },
+		            (entry) => createDir(entry, parts),
+		            (err) => reject(`创建目录失败: ${dir} (${JSON.stringify(err)})`)
+		          );
+		        };
+		        
+		        createDir(fs.root, segments);
+		      },
+		      (err) => reject(`文件系统错误: ${JSON.stringify(err)}`)
 		    );
+		  });
+		  // #endif
+		  
+		  // #ifndef APP-PLUS
+		  return Promise.resolve();
+		  // #endif
+		},
+
+		// 移动文件
+		moveFile(tempPath: string, targetDir: string, fileName: string): Promise<string> {
+		  return new Promise(async (resolve, reject) => {
+		    // #ifdef APP-PLUS
+		    try {
+		      // 确保目录存在
+		      await this.ensureDirectoryExists(targetDir);
+		      
+		      // 直接使用文件系统API操作
+		      plus.io.requestFileSystem(
+		        plus.io.PRIVATE_DOC,
+		        async (fs) => {
+		          try {
+		            // 获取目标目录
+		            const dirEntry = await this.getDirectoryEntry(fs, 'CabbagePlayer');
+		            
+		            // 检查文件是否存在
+		            let targetFileExists = false;
+		            try {
+		              await new Promise((res, rej) => {
+		                dirEntry.getFile(fileName, { create: false }, res, rej);
+		              });
+		              targetFileExists = true;
+		            } catch (e) {
+		              // 文件不存在是正常情况
+		            }
+		            
+		            // 如果存在则删除旧文件
+		            if (targetFileExists) {
+		              await new Promise<void>((res, rej) => {
+		                dirEntry.getFile(
+		                  fileName, 
+		                  { create: false }, 
+		                  (file) => file.remove(res, rej),
+		                  rej
+		                );
+		              });
+		            }
+		            
+		            // 移动文件
+		            const savedPath = await new Promise<string>((res, rej) => {
+		              plus.io.resolveLocalFileSystemURL(
+		                tempPath,
+		                (tempEntry) => {
+		                  tempEntry.moveTo(
+		                    dirEntry, 
+		                    fileName, 
+		                    (fileEntry) => res(fileEntry.toLocalURL()),
+		                    (err) => rej(new Error(`移动文件失败: ${JSON.stringify(err)}`))
+		                  );
+		                },
+		                (err) => rej(new Error(`解析临时文件失败: ${JSON.stringify(err)}`))
+		              );
+		            });
+		            
+		            resolve(savedPath);
+		          } catch (error) {
+		            reject(error);
+		          }
+		        },
+		        (err) => reject(new Error(`文件系统错误: ${JSON.stringify(err)}`))
+		      );
+		    } catch (error) {
+		      reject(error);
+		    }
 		    // #endif
 		    
 		    // #ifndef APP-PLUS
-		    resolve();
+		    resolve(tempPath);
 		    // #endif
 		  });
 		},
 		
-		// 移动文件
-		moveFile(tempPath: string, targetDir: string, fileName: string): Promise<string> {
-			return new Promise((resolve, reject) => {
-				// #ifdef APP-PLUS
-				const targetDir = `${plus.io.PUBLIC_DOWNLOADS}/CabbagePlayer/`;
-				
-				console.log(`准备移动文件: 从 ${tempPath} 到 ${targetDir}${fileName}`);
-		
-				plus.io.resolveLocalFileSystemURL(targetDir,
-					(dirEntry) => {
-						// 1. 检查目标文件是否已存在
-						dirEntry.getFile(fileName, { create: false },
-							(targetFileEntry) => {
-								// 如果 getFile 成功，说明文件已存在，需要先删除
-								console.log("目标文件已存在，正在删除:", targetFileEntry.fullPath);
-								targetFileEntry.remove(
-									() => {
-										console.log("旧文件删除成功，现在开始移动新文件...");
-										// 删除成功后，再执行移动操作
-										proceedToMove();
-									},
-									(removeError) => {
-										console.error("删除旧文件失败:", JSON.stringify(removeError));
-										reject(new Error(`覆盖旧文件失败: ${removeError.message}`));
-									}
-								);
-							},
-							(error) => {
-								// 如果 getFile 失败 (通常是 code: 1, NOT_FOUND_ERR)，说明文件不存在，这是正常情况
-								if (error.code === 1) {
-									console.log("目标文件不存在，直接移动。");
-									proceedToMove();
-								} else {
-									// 其他未预料的错误
-									console.error("检查目标文件时发生未知错误:", JSON.stringify(error));
-									reject(new Error(`检查目标文件状态失败: ${error.message}`));
-								}
-							}
-						);
-		
-						// 2. 封装移动逻辑，避免代码重复
-						const proceedToMove = () => {
-							plus.io.resolveLocalFileSystemURL(tempPath,
-								(tempFileEntry) => {
-									tempFileEntry.moveTo(dirEntry, fileName,
-										(finalEntry) => {
-											const finalPath = finalEntry.toLocalURL();
-											console.log("文件移动成功，最终路径:", finalPath);
-											resolve(finalPath);
-										},
-										(moveError) => {
-											console.error("文件移动错误详情:", JSON.stringify(moveError));
-											reject(new Error(`移动文件失败: ${moveError.message}`));
-										}
-									);
-								},
-								(err) => reject(new Error(`解析临时文件失败: ${JSON.stringify(err)}`))
-							);
-						};
-					},
-					(err) => reject(new Error(`解析目标目录失败: ${JSON.stringify(err)}`))
-				);
-				// #endif
-				
-				// #ifndef APP-PLUS
-				console.log("非APP环境，返回临时路径:", tempPath);
-				resolve(tempPath);
-				// #endif
-			});
+		// 辅助方法：获取目录Entry
+		getDirectoryEntry(fs: any, dirName: string): Promise<any> {
+		  return new Promise((resolve, reject) => {
+		    fs.root.getDirectory(
+		      dirName,
+		      { create: true },
+		      resolve,
+		      (err) => reject(new Error(`获取目录失败: ${JSON.stringify(err)}`))
+		    );
+		  });
 		},
-		
+
 		async checkPermission(): Promise<boolean> {
 		  // #ifdef APP-PLUS
 		  if (uni.getSystemInfoSync().platform === 'android') {
-		    const status = await new Promise<number>((resolve) => { // 明确 Promise 的返回类型为 number
+		    // 1. 使用 Promise<boolean> 更符合语义
+		    const hasPermission = await new Promise<boolean>((resolve) => {
 		      plus.android.requestPermissions(
 		        ['android.permission.WRITE_EXTERNAL_STORAGE'],
-		        (result) => {
-		          // 关键修正：返回结果对象中的 code 属性
-		          resolve(result.code); 
+		        (resultObj) => {
+		          // 2. 核心修正：检查 resultObj 对象中对应权限的值
+		          if (resultObj && resultObj['android.permission.WRITE_EXTERNAL_STORAGE'] === 'granted') {
+		            console.log("【权限】存储权限已授予");
+		            resolve(true);
+		          } else {
+		            console.warn("【权限】存储权限被拒绝");
+		            resolve(false);
+		          }
 		        },
 		        (error) => {
-		          // 增加错误处理，防止 Promise 一直挂起
-		          console.error('requestPermissions error:', error);
-		          resolve(-1); // 返回一个非 0 的值表示失败
+		          console.error('【权限】请求时发生错误:', error);
+		          resolve(false); // 发生错误也视为无权限
 		        }
 		      );
 		    });
-		    // status 现在是数字 0, 1, 或 -1
-		    // status 为 0 表示权限已授予
-		    if (status !== 0) {
-		      console.warn(`存储权限请求失败，状态码: ${status}`);
-		      // 可以在这里给用户更明确的提示
+		
+		    // 3. 根据布尔值结果进行后续操作
+		    if (!hasPermission) {
 		      uni.showModal({
 		        title: '权限申请',
 		        content: '需要您的存储权限才能下载歌曲。请在系统设置中手动授权。',

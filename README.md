@@ -28,6 +28,7 @@
 
 # 📷 应用截屏演示
 ## 搜索界面演示
+<<<<<<< HEAD
 <p align="center">
 	<img src="./static/images/sousuo.jpg" alt="Sousuo" width="300">
 </p>

@@ -28,7 +28,7 @@
 
 # 📷 应用截屏演示
 ## 搜索界面演示
-<img src="![Screenshot_2025-07-04-16-27-35-47_a2e629f0ea915b4](https://github.com/user-attachments/assets/cd6dcf13-49cd-4213-b5f5-fc33229c3654)" alt="Search" width="300">
+<img src="https://github.com/user-attachments/assets/cd6dcf13-49cd-4213-b5f5-fc33229c3654" alt="Search" width="300">
 
 ## 音乐详情界面演示
-<img src="![Screenshot_2025-07-04-16-27-48-91_a2e629f0ea915b4](https://github.com/user-attachments/assets/4b84441e-9709-4e77-b8e5-d4d1cc71ec02)" alt="Search" width="300">
+<img src="https://github.com/user-attachments/assets/4b84441e-9709-4e77-b8e5-d4d1cc71ec02" alt="Search" width="300">
